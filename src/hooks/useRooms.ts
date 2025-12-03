@@ -11,7 +11,7 @@ export function useMyRooms(deviceId: string) {
     if (!deviceId) return;
 
     const unsub = listenMyRooms(deviceId, (list) => {
-      setRooms(list.filter((r) => !r.isFinished));
+      setRooms(list);
       setLoading(false);
     });
 

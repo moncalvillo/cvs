@@ -9,8 +9,10 @@ import {
   TeamList,
   JoinSection,
   RoomActions,
+  PlayerActions,
   ResetConfirmModal,
   CloseRoomModal,
+  ChangeTeamModal,
 } from "../../src/components/room";
 import { LoadingState } from "../../src/components/common";
 import { Button } from "../../src/components/ui";
@@ -19,6 +21,8 @@ import {
   incrementScore,
   resetScores,
   finishRoom,
+  leaveRoom,
+  changeTeam,
 } from "../../src/services/rooms.service";
 import type { Player } from "../../src/state/models";
 import { roomStyles } from "../../src/styles/roomStyle";
@@ -31,6 +35,7 @@ export default function RoomDetailScreen() {
 
   const [showResetModal, setShowResetModal] = useState(false);
   const [showCloseModal, setShowCloseModal] = useState(false);
+  const [showChangeTeamModal, setShowChangeTeamModal] = useState(false);
 
   const { room, loading } = useRoomByCode(code);
 
@@ -58,6 +63,7 @@ export default function RoomDetailScreen() {
   const myPlayer: Player | undefined = room.players.find(
     (p) => p.deviceId === session.deviceId
   );
+  const isCreator = room.creatorDeviceId === session.deviceId;
 
   const handleJoinSolo = async () => {
     if (myPlayer || isFull) return;
@@ -85,14 +91,43 @@ export default function RoomDetailScreen() {
   };
 
   const confirmReset = async () => {
-    await resetScores(room.code);
-    setShowResetModal(false);
+    try {
+      await resetScores(room.code, session.deviceId);
+      setShowResetModal(false);
+    } catch (error: any) {
+      alert(error.message || "Error al resetear puntuaciones");
+    }
   };
 
   const confirmClose = async () => {
-    await finishRoom(room.code);
-    setShowCloseModal(false);
-    router.replace("/");
+    try {
+      await finishRoom(room.code, session.deviceId);
+      setShowCloseModal(false);
+      router.replace("/");
+    } catch (error: any) {
+      alert(error.message || "Error al cerrar la sala");
+    }
+  };
+
+  const handleLeaveRoom = async () => {
+    try {
+      await leaveRoom(room.code, session.deviceId);
+      router.replace("/");
+    } catch (error: any) {
+      alert(error.message || "Error al salir de la sala");
+    }
+  };
+
+  const handleChangeTeam = async (teamId: string) => {
+    try {
+      await changeTeam(
+        room.code,
+        session.deviceId,
+        room.teams.find((t) => t.id === teamId)!
+      );
+    } catch (error: any) {
+      alert(error.message || "Error al cambiar de equipo");
+    }
   };
 
   return (
@@ -114,10 +149,23 @@ export default function RoomDetailScreen() {
           />
         )}
 
-        <RoomActions
-          onReset={() => setShowResetModal(true)}
-          onFinish={() => setShowCloseModal(true)}
-        />
+        {myPlayer && !isCreator && (
+          <PlayerActions
+            onLeave={handleLeaveRoom}
+            onChangeTeam={
+              room.mode === "teams"
+                ? () => setShowChangeTeamModal(true)
+                : undefined
+            }
+          />
+        )}
+
+        {isCreator && (
+          <RoomActions
+            onReset={() => setShowResetModal(true)}
+            onFinish={() => setShowCloseModal(true)}
+          />
+        )}
 
         <ResetConfirmModal
           visible={showResetModal}
@@ -129,6 +177,14 @@ export default function RoomDetailScreen() {
           visible={showCloseModal}
           onConfirm={confirmClose}
           onCancel={() => setShowCloseModal(false)}
+        />
+
+        <ChangeTeamModal
+          visible={showChangeTeamModal}
+          teams={room.teams}
+          currentTeamId={myPlayer?.teamId}
+          onSelectTeam={handleChangeTeam}
+          onCancel={() => setShowChangeTeamModal(false)}
         />
       </View>
     </SafeAreaView>

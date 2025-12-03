@@ -4,6 +4,7 @@ import {
   doc,
   setDoc,
   updateDoc,
+  getDoc,
   onSnapshot,
   query,
   where,
@@ -114,7 +115,9 @@ export async function createRoomInFirestore(params: {
 }
 
 /**
- * Escucha en tiempo real las salas creadas por un deviceId.
+ * Escucha en tiempo real las salas donde el usuario es creador o jugador.
+ * Nota: Firestore no permite queries eficientes sobre array-contains con otros filtros,
+ * por lo que obtenemos todas las salas no finalizadas y filtramos en el cliente.
  */
 export function listenMyRooms(
   deviceId: string,
@@ -122,13 +125,21 @@ export function listenMyRooms(
 ) {
   const q = query(
     roomsCol(),
-    where("creatorDeviceId", "==", deviceId),
+    where("isFinished", "==", false),
     orderBy("createdAt", "desc")
   );
 
   return onSnapshot(q, (snapshot) => {
-    const rooms = snapshot.docs.map((doc) => doc.data());
-    callback(rooms);
+    const allRooms = snapshot.docs.map((doc) => doc.data());
+
+    // Filtrar salas donde soy creador o jugador
+    const myRooms = allRooms.filter(
+      (room) =>
+        room.creatorDeviceId === deviceId ||
+        room.players.some((p) => p.deviceId === deviceId)
+    );
+
+    callback(myRooms);
   });
 }
 
@@ -152,8 +163,85 @@ export function listenRoomByCode(
  * Unirse a una sala.
  */
 export async function joinRoom(code: string, player: Player) {
-  await updateDoc(roomDoc(code), {
+  const roomRef = roomDoc(code);
+  const snapshot = await getDoc(roomRef);
+
+  if (!snapshot.exists()) {
+    throw new Error("La sala no existe");
+  }
+
+  const room = snapshot.data() as Room;
+
+  // Verificar si el jugador ya está en la sala
+  const alreadyJoined = room.players.some(
+    (p) => p.deviceId === player.deviceId
+  );
+
+  if (alreadyJoined) {
+    throw new Error("Ya estás en esta sala");
+  }
+
+  // Verificar capacidad
+  if (room.players.length >= room.capacity) {
+    throw new Error("La sala está llena");
+  }
+
+  await updateDoc(roomRef, {
     players: arrayUnion(player),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Salir de una sala.
+ */
+export async function leaveRoom(code: string, deviceId: string) {
+  const roomRef = roomDoc(code);
+  const snapshot = await getDoc(roomRef);
+
+  if (!snapshot.exists()) {
+    throw new Error("La sala no existe");
+  }
+
+  const room = snapshot.data() as Room;
+
+  // Filtrar el jugador que quiere salir
+  const updatedPlayers = room.players.filter((p) => p.deviceId !== deviceId);
+
+  await updateDoc(roomRef, {
+    players: updatedPlayers,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Cambiar de equipo (solo para modo teams).
+ */
+export async function changeTeam(
+  code: string,
+  deviceId: string,
+  newTeam: Team
+) {
+  const roomRef = roomDoc(code);
+  const snapshot = await getDoc(roomRef);
+
+  if (!snapshot.exists()) {
+    throw new Error("La sala no existe");
+  }
+
+  const room = snapshot.data() as Room;
+
+  if (room.mode !== "teams") {
+    throw new Error("Solo puedes cambiar de equipo en modo equipos");
+  }
+
+  // Actualizar el equipo del jugador
+  const updatedPlayers = room.players.map((p) =>
+    p.deviceId === deviceId ? { ...p, team: newTeam } : p
+  );
+
+  await updateDoc(roomRef, {
+    players: updatedPlayers,
     updatedAt: serverTimestamp(),
   });
 }
@@ -174,9 +262,23 @@ export async function incrementScore(
 
 /**
  * Resetear todas las puntuaciones a 0.
+ * Solo el creador puede hacerlo.
  */
-export async function resetScores(code: string) {
-  await updateDoc(roomDoc(code), {
+export async function resetScores(code: string, deviceId: string) {
+  const roomRef = roomDoc(code);
+  const snapshot = await getDoc(roomRef);
+
+  if (!snapshot.exists()) {
+    throw new Error("La sala no existe");
+  }
+
+  const room = snapshot.data() as Room;
+
+  if (room.creatorDeviceId !== deviceId) {
+    throw new Error("Solo el creador puede resetear las puntuaciones");
+  }
+
+  await updateDoc(roomRef, {
     scores: {},
     updatedAt: serverTimestamp(),
   });
@@ -184,9 +286,23 @@ export async function resetScores(code: string) {
 
 /**
  * Marcar la sala como terminada/cerrada.
+ * Solo el creador puede hacerlo.
  */
-export async function finishRoom(code: string) {
-  await updateDoc(roomDoc(code), {
+export async function finishRoom(code: string, deviceId: string) {
+  const roomRef = roomDoc(code);
+  const snapshot = await getDoc(roomRef);
+
+  if (!snapshot.exists()) {
+    throw new Error("La sala no existe");
+  }
+
+  const room = snapshot.data() as Room;
+
+  if (room.creatorDeviceId !== deviceId) {
+    throw new Error("Solo el creador puede cerrar la sala");
+  }
+
+  await updateDoc(roomRef, {
     isFinished: true,
     updatedAt: serverTimestamp(),
   });
