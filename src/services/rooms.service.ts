@@ -116,34 +116,34 @@ export async function createRoomInFirestore(params: {
 
 /**
  * Escucha en tiempo real las salas donde el usuario es creador o jugador.
- * Nota: Firestore no permite queries eficientes sobre array-contains con otros filtros,
- * por lo que obtenemos todas las salas no finalizadas y filtramos en el cliente.
+ * Nota: Obtiene todas las salas y filtra en el cliente para evitar necesitar índices compuestos.
  */
 export function listenMyRooms(
   deviceId: string,
   callback: (rooms: Room[]) => void
 ) {
+  // Query simple sin orderBy para evitar necesitar índice compuesto
   const q = query(
     roomsCol(),
-    where("isFinished", "==", false),
-    orderBy("createdAt", "desc")
+    where("isFinished", "==", false)
   );
 
   return onSnapshot(q, (snapshot) => {
     const allRooms = snapshot.docs.map((doc) => doc.data());
-
+    
     // Filtrar salas donde soy creador o jugador
     const myRooms = allRooms.filter(
       (room) =>
         room.creatorDeviceId === deviceId ||
         room.players.some((p) => p.deviceId === deviceId)
     );
-
+    
+    // Ordenar por fecha en el cliente
+    myRooms.sort((a, b) => b.createdAt - a.createdAt);
+    
     callback(myRooms);
   });
-}
-
-/**
+}/**
  * Escucha una sala concreta por código.
  */
 export function listenRoomByCode(
@@ -163,33 +163,42 @@ export function listenRoomByCode(
  * Unirse a una sala.
  */
 export async function joinRoom(code: string, player: Player) {
-  const roomRef = roomDoc(code);
-  const snapshot = await getDoc(roomRef);
+  try {
+    const roomRef = roomDoc(code);
+    const snapshot = await getDoc(roomRef);
 
-  if (!snapshot.exists()) {
-    throw new Error("La sala no existe");
+    if (!snapshot.exists()) {
+      throw new Error("La sala no existe");
+    }
+
+    const room = snapshot.data() as Room;
+
+    // Verificar si el jugador ya está en la sala
+    const alreadyJoined = room.players.some(
+      (p) => p.deviceId === player.deviceId
+    );
+
+    if (alreadyJoined) {
+      throw new Error("Ya estás en esta sala");
+    }
+
+    // Verificar capacidad
+    if (room.players.length >= room.capacity) {
+      throw new Error("La sala está llena");
+    }
+
+    await updateDoc(roomRef, {
+      players: arrayUnion(player),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error: any) {
+    // Convertir errores técnicos de Firebase en mensajes amigables
+    if (error.message?.includes("No document to update")) {
+      throw new Error("La sala no existe o fue cerrada");
+    }
+    // Re-lanzar el error si ya es un mensaje amigable
+    throw error;
   }
-
-  const room = snapshot.data() as Room;
-
-  // Verificar si el jugador ya está en la sala
-  const alreadyJoined = room.players.some(
-    (p) => p.deviceId === player.deviceId
-  );
-
-  if (alreadyJoined) {
-    throw new Error("Ya estás en esta sala");
-  }
-
-  // Verificar capacidad
-  if (room.players.length >= room.capacity) {
-    throw new Error("La sala está llena");
-  }
-
-  await updateDoc(roomRef, {
-    players: arrayUnion(player),
-    updatedAt: serverTimestamp(),
-  });
 }
 
 /**

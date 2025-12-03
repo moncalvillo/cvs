@@ -1,4 +1,3 @@
-// app/index.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -14,6 +13,7 @@ import type { Room } from "../src/state/models";
 import { useMyRooms } from "../src/hooks/useRooms";
 import { RoomCard, LoadingState, EmptyState } from "../src/components/common";
 import { Button } from "../src/components/ui";
+import { colors } from "../src/styles/colors";
 
 export default function Index() {
   const { session, hasCompletedOnboarding } = useStore();
@@ -157,7 +157,7 @@ export default function Index() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#f3f3f3",
+    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
@@ -177,16 +177,18 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "700",
     textAlign: "center",
+    color: colors.textPrimary,
   },
   profileIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 8,
+    backgroundColor: colors.white,
   },
   profileIconText: {
     fontSize: 18,
@@ -198,6 +200,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 8,
+    color: colors.textPrimary,
   },
   bottomButtons: {
     flexDirection: "row",
@@ -215,14 +218,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: colors.overlay,
     justifyContent: "center",
     alignItems: "center",
   },
   menuCard: {
     width: "85%",
     padding: 16,
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     borderRadius: 16,
     elevation: 4,
   },
@@ -230,19 +233,21 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     marginBottom: 12,
+    color: colors.textPrimary,
   },
   menuLabel: {
     fontSize: 12,
-    color: "#777",
+    color: colors.textSecondary,
     marginTop: 4,
   },
   menuValue: {
     fontSize: 14,
     fontWeight: "500",
+    color: colors.textPrimary,
   },
   menuValueSmall: {
     fontSize: 11,
-    color: "#444",
+    color: colors.textSecondary,
   },
   menuButton: {
     marginTop: 8,

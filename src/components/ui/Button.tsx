@@ -6,6 +6,7 @@ import {
   ViewStyle,
   TextStyle,
 } from "react-native";
+import { colors } from "../../styles/colors";
 
 type ButtonVariant = "primary" | "secondary" | "danger" | "copy" | "plus";
 
@@ -53,34 +54,34 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   primary: {
-    backgroundColor: "#007AFF",
+    backgroundColor: colors.primary,
   },
   primaryText: {
-    color: "#ffffff",
+    color: colors.white,
   },
   secondary: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: colors.secondary,
   },
   secondaryText: {
-    color: "#333333",
+    color: colors.white,
   },
   danger: {
-    backgroundColor: "#cc3333",
+    backgroundColor: colors.danger,
   },
   dangerText: {
-    color: "#ffffff",
+    color: colors.white,
   },
   copy: {
-    backgroundColor: "#007AFF",
+    backgroundColor: colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   copyText: {
-    color: "#ffffff",
+    color: colors.white,
     fontSize: 12,
   },
   plus: {
-    backgroundColor: "#007AFF",
+    backgroundColor: colors.primary,
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -88,7 +89,7 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   plusText: {
-    color: "#ffffff",
+    color: colors.white,
     fontSize: 18,
     fontWeight: "700",
   },
