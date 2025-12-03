@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "cvs",
+    "name": "Count VS",
     "slug": "cvs",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -13,21 +13,30 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.moncalvillo.cvs"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "package": "com.moncalvillo.cvs",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "scheme": "cvs",
     "plugins": [
       "expo-router"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1b45687a-c158-4de4-9967-361a16daa034"
+      }
+    }
   }
 }
