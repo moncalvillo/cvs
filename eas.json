@@ -13,15 +13,13 @@
     },
     "preview": {
       "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_APP_ENV": "preview"
-      }
+      "channel": "preview",
+      "env": {}
     },
     "production": {
       "autoIncrement": true,
-      "env": {
-        "EXPO_PUBLIC_APP_ENV": "production"
-      }
+      "channel": "production",
+      "env": {}
     }
   },
   "submit": {
